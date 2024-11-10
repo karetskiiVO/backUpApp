@@ -16,21 +16,17 @@ func main() {
 	args := os.Args[1:]
 	incremental := false
 
-	if len(os.Args) > 2 && os.Args[1] == "incremental" {
-		args = args[1:]
-		incremental = true
-	}
-
 	var options struct {
 		Args struct {
+			Mode    string
 			WorkDir string
 			BackDir string
-			Unused  []string
-		} `positional-args:"yes" required:"yes"`
+			Unused []string
+		} `positional-args:"yes" required:"3"`
 	}
 
 	parser := flags.NewParser(&options, flags.Default&(^flags.PrintErrors))
-	parser.Usage = "[\"\" | \"incremental\"] "
+	parser.Usage = "[\"full\" | \"incremental\"] "
 
 	_, err := parser.ParseArgs(args)
 	if err != nil {
@@ -42,10 +38,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	if incremental {
-		err = incrementalBackup(options.Args.WorkDir, options.Args.BackDir)
-	} else {
+	switch options.Args.Mode {
+	case "full":
 		err = fullBackup(options.Args.WorkDir, options.Args.BackDir)
+	case "incremental":
+		err = incrementalBackup(options.Args.WorkDir, options.Args.BackDir)
+	default:
+		err = fmt.Errorf("undefinedmode: %v", options.Args.Mode)
 	}
 	if err != nil {
 		fmt.Println(err)
@@ -122,7 +121,7 @@ func fullBackup(workDir, backupDir string) error {
 
 func incrementalBackup(workDir, backupDir string) error {
 	currentName := marshalTime(time.Now())
-	
+
 	prevBackup, err := os.ReadFile(backupDir + "/.backupcache")
 	if err != nil {
 		return fmt.Errorf(
@@ -169,7 +168,10 @@ func incrementalBackup(workDir, backupDir string) error {
 			return nil
 		}
 
-		backupDiff[path[len(prevDir):]] = struct{Size int64; Used bool}{
+		backupDiff[path[len(prevDir):]] = struct {
+			Size int64
+			Used bool
+		}{
 			info.Size(), false,
 		}
 

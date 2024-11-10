@@ -93,8 +93,6 @@ func restore(backupDir, workDir string) error {
 	idx := strings.LastIndexAny(backupDir, "/\\")
 	lastFullDir := backupDir[:idx] + cachedStrings[0]
 
-	fmt.Println(cachedStrings)
-
 	if lastFullDir != backupDir {
 		exceptSet := make(map[string]struct{})
 		for _, path := range cachedStrings[1:] {

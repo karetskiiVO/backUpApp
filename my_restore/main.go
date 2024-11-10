@@ -79,15 +79,16 @@ func restoreFull(backupDir, workDir string, exceptPath map[string]struct{}) erro
 }
 
 func restore(backupDir, workDir string) error {
-	err := clearDirectory(workDir)
-	if err != nil {
-		return err
-	}
-
 	buf, err := os.ReadFile(backupDir + "/.backupcache")
 	if err != nil {
 		return err
 	}
+
+	err = clearDirectory(workDir)
+	if err != nil {
+		return err
+	}
+
 	cachedStrings := strings.Split(string(buf), "\n")
 
 	idx := strings.LastIndexAny(backupDir, "/\\")

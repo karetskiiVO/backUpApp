@@ -2,7 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/jessevdk/go-flags"
 )
@@ -32,12 +36,75 @@ func main() {
 
 	err = restore(options.Args.BackDir, options.Args.WorkDir)
 
-
 }
 
-func restore (backupdir, workdir string) error {
+func restoreFull(backupDir, workDir string, exceptPath map[string]struct{}) error {
+	return filepath.Walk(backupDir, func(path string, info fs.FileInfo, err error) error {
+		if path == backupDir || path[len(backupDir)+1:] == ".backupcache" {
+			return nil
+		}
 
+		bufPath := path[len(backupDir):]
 
+		if _, ok := exceptPath[bufPath]; ok {
+			return nil
+		}
+
+		workPath := workDir + bufPath
+
+		if info.IsDir() {
+			err := os.Mkdir(workPath, info.Mode())
+			if err != nil {
+				return err
+			}
+		} else {
+			srcfile, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer srcfile.Close()
+
+			dstfile, err := os.OpenFile(workPath, os.O_RDWR|os.O_CREATE, 0644)
+			if err != nil {
+				return err
+			}
+			defer dstfile.Close()
+
+			io.Copy(dstfile, srcfile)
+			dstfile.Chmod(info.Mode())
+		}
+
+		return nil
+	})
+}
+
+func restore(backupDir, workDir string) error {
+	err := clearDirectory(workDir)
+	if err != nil {
+		return err
+	}
+
+	buf, err := os.ReadFile(backupDir + "/.backupcache")
+	if err != nil {
+		return err
+	}
+	cachedStrings := strings.Split(string(buf), "\n")
+
+	idx := strings.LastIndexAny(backupDir, "/\\")
+	lastFullDir := backupDir[:idx] + cachedStrings[0]
+
+	fmt.Println(cachedStrings)
+
+	if lastFullDir != backupDir {
+		exceptSet := make(map[string]struct{})
+		for _, path := range cachedStrings[1:] {
+			exceptSet[path] = struct{}{}
+		}
+
+		restoreFull(lastFullDir, workDir, exceptSet)
+	}
+
+	restoreFull(backupDir, workDir, map[string]struct{}{})
 
 	return nil
 }

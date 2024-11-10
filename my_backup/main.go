@@ -53,9 +53,9 @@ func main() {
 	}
 }
 
-func fullBackup(workDir, backupdir string) error {
+func fullBackup(workDir, backupDir string) error {
 	currentName := marshalTime(time.Now())
-	newDir := backupdir + currentName
+	newDir := backupDir + currentName
 	ok, err := exists(newDir)
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func fullBackup(workDir, backupdir string) error {
 		return err
 	}
 
-	cachefile, err = os.OpenFile(backupdir+"/.backupcache", os.O_RDWR|os.O_CREATE, 0644)
+	cachefile, err = os.OpenFile(backupDir+"/.backupcache", os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return err
 	}
@@ -120,17 +120,17 @@ func fullBackup(workDir, backupdir string) error {
 	return nil
 }
 
-func incrementalBackup(workDir, backupdir string) error {
+func incrementalBackup(workDir, backupDir string) error {
 	currentName := marshalTime(time.Now())
 	
-	prevBackup, err := os.ReadFile(backupdir + "/.backupcache")
+	prevBackup, err := os.ReadFile(backupDir + "/.backupcache")
 	if err != nil {
 		return fmt.Errorf(
 			"os returned:%w\ndata about the last full backup is not available, check the existence of the full backup and its access rights", err,
 		)
 	}
 
-	newDir := backupdir + currentName
+	newDir := backupDir + currentName
 	ok, err := exists(newDir)
 	if err != nil {
 		return err
@@ -143,7 +143,7 @@ func incrementalBackup(workDir, backupdir string) error {
 		return err
 	}
 
-	prevDir := backupdir + string(prevBackup)
+	prevDir := backupDir + string(prevBackup)
 	prevTime, err := unmarshalTime(string(prevBackup)[1:])
 	if err != nil {
 		return err
@@ -188,9 +188,9 @@ func incrementalBackup(workDir, backupdir string) error {
 		backupPath := newDir + bufPath
 
 		if prevSize, ok := backupDiff[bufPath]; ok {
-			prevSize.Used = true
-			backupDiff[bufPath] = prevSize
 			if prevSize.Size == info.Size() && !info.ModTime().After(prevTime) {
+				prevSize.Used = true
+				backupDiff[bufPath] = prevSize
 				return nil
 			}
 		}

@@ -14,14 +14,13 @@ import (
 
 func main() {
 	args := os.Args[1:]
-	incremental := false
 
 	var options struct {
 		Args struct {
 			Mode    string
 			WorkDir string
 			BackDir string
-			Unused []string
+			Unused  []string
 		} `positional-args:"yes" required:"3"`
 	}
 
